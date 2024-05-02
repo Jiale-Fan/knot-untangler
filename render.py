@@ -39,8 +39,8 @@ def set_render_settings(engine, render_size):
     scene.render.resolution_y = render_height
     if engine == 'BLENDER_WORKBENCH':
         scene.render.image_settings.color_mode = 'RGB'
-        scene.display_settings.display_device = 'None'
-        scene.sequencer_colorspace_settings.name = 'XYZ'
+        scene.display_settings.display_device = 'sRGB'
+        scene.sequencer_colorspace_settings.name = 'Linear CIE-XYZ E'
         scene.render.image_settings.file_format='PNG'
     elif engine == "BLENDER_EEVEE":
         scene.eevee.taa_samples = 1
@@ -112,7 +112,7 @@ def find_knot(num_segments, chain=False, depth_thresh=0.4, idx_thresh=3, pull_of
         key = tuple((x,y))
         val = {"idx":i, "depth":z}
         cache[key] = val
-    neigh = NearestNeighbors(2, 0)
+    neigh = NearestNeighbors(n_neighbors=2, radius=1.0)
     planar_coords = list(cache.keys())
     neigh.fit(planar_coords)
     # Now traverse and look for the under crossing
@@ -127,7 +127,7 @@ def find_knot(num_segments, chain=False, depth_thresh=0.4, idx_thresh=3, pull_of
         idx_diff = abs(match_cyl["idx"] - curr_cyl["idx"])
         if depth_diff > depth_thresh and idx_diff > idx_thresh:
             pull_idx = i + pull_offset # Pick a point slightly past under crossing to do the pull
-            dx = planar_coords[pull_idx][0] - x
+            dx = planar_coords[pull_idx][0] - x # TODO index out of range
             dy = planar_coords[pull_idx][1] - y
             hold_idx = match_cyl["idx"]
             SCALE_X = 1
@@ -171,7 +171,12 @@ def render_mask(mask_filename, depth_filename, index):
     math_node.operation = 'CEIL' # Threshold the depth image
     composite = tree.nodes.new(type = "CompositorNodeComposite")
 
-    links.new(render_node.outputs["Depth"], inv_node.inputs["Color"])
+    # 'Depth' is outputs[2]
+    print(render_node.outputs[2])
+    print(inv_node.inputs.items())
+    print(norm_node.inputs.items())
+    print(composite.inputs.items())
+    links.new(render_node.outputs[2], inv_node.inputs["Color"])
     links.new(inv_node.outputs[0], norm_node.inputs[0])
     links.new(norm_node.outputs[0], composite.inputs["Image"])
 

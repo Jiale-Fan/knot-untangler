@@ -59,7 +59,10 @@ def make_capsule_rope(params):
     link0.rigid_body.linear_damping = params["linear_damping"]
     link0.rigid_body.angular_damping = params["angular_damping"] # NOTE: this makes the rope a lot less wiggly
     # These are simulation parameters that seemed to work well for simulation speed & collision handling
-    bpy.context.scene.rigidbody_world.steps_per_second = 120
+    # bpy.context.scene.rigidbody_world.steps_per_second = 120 # this does not work with blender 4.1.1
+    # these following parameters can be tuned: 
+    bpy.context.scene.rigidbody_world.substeps_per_frame = 120 # int in [0, 32767], default 10
+    bpy.context.scene.rigidbody_world.time_scale = 1.0 # float in [0, 100], default 1.0
     bpy.context.scene.rigidbody_world.solver_iterations = 20
     for i in range(num_segments-1):
         bpy.ops.object.duplicate_move(TRANSFORM_OT_translate={"value":(-2*radius, 0, 0)})
@@ -115,7 +118,7 @@ def make_cable_rig(params, bezier):
     '''Cable armature'''
     bpy.ops.object.modifier_add(type='CURVE')
     bpy.ops.curve.primitive_bezier_circle_add(radius=0.02)
-    bezier.data.bevel_object = bpy.data.objects["BezierCircle"]
+    bezier.data.bevel_object = bpy.data.objects["BézierCircle"]
     bpy.context.view_layer.objects.active = bezier
     return bezier
 
@@ -147,7 +150,8 @@ def rig_rope(params, mode):
         hook = bezier.modifiers.new(name = "Hook.%03d"%i, type = 'HOOK' )
         hook.object = arm
         hook.subtarget = "Bone.%03d"%(n-1-(i*n/num_control_points))
-        pt = bpy.data.curves['BezierCurve'].splines[0].bezier_points[i]
+        # print(bpy.data.curves.items())
+        pt = bpy.data.curves['BézierCurve'].splines[0].bezier_points[i]
         pt.select_control_point = True
         bpy.ops.object.hook_assign(modifier="Hook.%03d"%i)
         pt.select_control_point = False
